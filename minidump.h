@@ -218,6 +218,22 @@ typedef struct _MINIDUMP_HEADER {
   guint64 Flags;
 } MINIDUMP_HEADER, *PMINIDUMP_HEADER;
 
+struct _MiniDump {
+  int fd;
+  guint64 size;
+  void *base;
+  GString *filename;
+
+  MINIDUMP_HEADER *header;
+  MINIDUMP_DIRECTORY *directories;
+  MINIDUMP_THREAD_LIST *thread_list;
+  MINIDUMP_EXCEPTION_STREAM *exception_stream;
+  MINIDUMP_MODULE_LIST *module_list;
+  MINIDUMP_MEMORY_LIST *memory_list;
+  MINIDUMP_MEMORY64_LIST *memory64_list;
+  MINIDUMP_SYSTEM_INFO *system_info;
+};
+
 typedef struct _MiniDump MiniDump;
 
 MiniDump *mini_dump_new(gchar *filename);

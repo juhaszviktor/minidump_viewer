@@ -7,22 +7,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-struct _MiniDump {
-  int fd;
-  guint64 size;
-  void *base;
-  GString *filename;
-
-  MINIDUMP_HEADER *header;
-  MINIDUMP_DIRECTORY *directories;
-  MINIDUMP_THREAD_LIST *thread_list;
-  MINIDUMP_EXCEPTION_STREAM *exception_stream;
-  MINIDUMP_MODULE_LIST *module_list;
-  MINIDUMP_MEMORY_LIST *memory_list;
-  MINIDUMP_MEMORY64_LIST *memory64_list;
-  MINIDUMP_SYSTEM_INFO *system_info;
-};
-
 static void *
 mini_dump_translate_rva(MiniDump *self, guint32 rva)
 {

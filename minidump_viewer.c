@@ -28,15 +28,17 @@ int main(int argc,char **argv)
     {
       g_print ("Minidumpfile is required!\n");
       g_print ("%s\n", g_option_context_get_help(context,TRUE,NULL));
-      return 0;
+      return 1;
     }
   minidump_filename = argv[1];
   md = mini_dump_new(minidump_filename);
-  if (mini_dump_open(md))
+  if (!mini_dump_open(md))
     {
-      fprintf(stderr,"YESSSSSSSSSSSS!\n");
-      //fprintf(stderr,"0x%02x%02X\n",md->system_info->MajorVersion,md->system_info->MinorVersion);
+      mini_dump_free(md);
+      return 1;
     } 
+  fprintf(stderr,"Windows Version: 0x%02x%02X\n",md->system_info->MajorVersion,md->system_info->MinorVersion);
+  
   mini_dump_free(md);
   return 0;
 }
