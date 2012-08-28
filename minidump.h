@@ -2,6 +2,7 @@
 #define _MINIDUMP_H 1
 
 #include <glib.h>
+#pragma pack(1)
 
 typedef enum _MINIDUMP_TYPE { 
   MiniDumpNormal                           = 0x00000000,
@@ -104,7 +105,7 @@ typedef struct tagVS_FIXEDFILEINFO {
 
 typedef struct _MINIDUMP_STRING {
   guint32 Length;
-  short    Buffer[];
+  guint16 Buffer[];
 } MINIDUMP_STRING, *PMINIDUMP_STRING;
 
 typedef struct _MINIDUMP_MEMORY_LIST {
@@ -223,6 +224,7 @@ struct _MiniDump {
   guint64 size;
   void *base;
   GString *filename;
+  gchar *bin_dir;
 
   MINIDUMP_HEADER *header;
   MINIDUMP_DIRECTORY *directories;
@@ -234,10 +236,157 @@ struct _MiniDump {
   MINIDUMP_SYSTEM_INFO *system_info;
 };
 
+#define MAXIMUM_SUPPORTED_EXTENSION 512 
+#define DECLSPEC_ALIGN(n) __declspec(align(n))
+
+typedef struct _FLOATING_SAVE_AREA {
+  guint32 ControlWord;
+  guint32 StatusWord;
+  guint32 TagWord;
+  guint32 ErrorOffset;
+  guint32 ErrorSelector;
+  guint32 DataOffset;
+  guint32 DataSelector;
+  guint8  RegisterArea[80];
+  guint32 Cr0NpxState;
+} FLOATING_SAVE_AREA; 
+
+typedef struct _CONTEXT_X86_32 {
+  guint32 ContextFlags;
+  guint32 Dr0;
+  guint32 Dr1;
+  guint32 Dr2;
+  guint32 Dr3;
+  guint32 Dr6;
+  guint32 Dr7;
+  FLOATING_SAVE_AREA FloatSave;
+  guint32 SegGs;
+  guint32 SegFs;
+  guint32 SegEs;
+  guint32 SegDs;
+  guint32 Edi;
+  guint32 Esi;
+  guint32 Ebx;
+  guint32 Edx;
+  guint32 Ecx;
+  guint32 Eax;
+  guint32 Ebp;
+  guint32 Eip;
+  guint32 SegCs;
+  guint32 EFlags;
+  guint32 Esp;
+  guint32 SegSs;
+  guint8  ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
+} CONTEXT_X86_32;
+
+
+typedef struct _M128A {
+    guint64 Low;
+    gint64 High;
+} M128A,*PM128A;
+
+typedef struct _XMM_SAVE_AREA32 {
+    guint16 ControlWord;
+    guint16 StatusWord;
+    guint8 TagWord;
+    guint8 Reserved1;
+    guint16 ErrorOpcode;
+    guint32 ErrorOffset;
+    guint16 ErrorSelector;
+    guint16 Reserved2;
+    guint32 DataOffset;
+    guint16 DataSelector;
+    guint16 Reserved3;
+    guint32 MxCsr;
+    guint32 MxCsr_Mask;
+    M128A FloatRegisters[8];
+    M128A XmmRegisters[16];
+    guint8 Reserved4[96];
+} XMM_SAVE_AREA32,*PXMM_SAVE_AREA32;
+
+#define LEGACY_SAVE_AREA_LENGTH sizeof(XMM_SAVE_AREA32)
+
+typedef struct _CONTEXT_X86_64 {
+    guint64 P1Home;
+    guint64 P2Home;
+    guint64 P3Home;
+    guint64 P4Home;
+    guint64 P5Home;
+    guint64 P6Home;
+    guint32 ContextFlags;
+    guint32 MxCsr;
+    guint16 SegCs;
+    guint16 SegDs;
+    guint16 SegEs;
+    guint16 SegFs;
+    guint16 SegGs;
+    guint16 SegSs;
+    guint32 EFlags;
+    guint64 Dr0;
+    guint64 Dr1;
+    guint64 Dr2;
+    guint64 Dr3;
+    guint64 Dr6;
+    guint64 Dr7;
+    guint64 Rax;
+    guint64 Rcx;
+    guint64 Rdx;
+    guint64 Rbx;
+    guint64 Rsp;
+    guint64 Rbp;
+    guint64 Rsi;
+    guint64 Rdi;
+    guint64 R8;
+    guint64 R9;
+    guint64 R10;
+    guint64 R11;
+    guint64 R12;
+    guint64 R13;
+    guint64 R14;
+    guint64 R15;
+    guint64 Rip;
+    union 
+      {
+        XMM_SAVE_AREA32 FltSave;
+        XMM_SAVE_AREA32 FloatSave;
+        struct
+          {
+            M128A Header[2];
+            M128A Legacy[8];
+            M128A Xmm0;
+            M128A Xmm1;
+            M128A Xmm2;
+            M128A Xmm3;
+            M128A Xmm4;
+            M128A Xmm5;
+            M128A Xmm6;
+            M128A Xmm7;
+            M128A Xmm8;
+            M128A Xmm9;
+            M128A Xmm10;
+            M128A Xmm11;
+            M128A Xmm12;
+            M128A Xmm13;
+            M128A Xmm14;
+            M128A Xmm15;
+          };
+      };
+    M128A VectorRegister[26];
+    guint64 VectorControl;
+    guint64 DebugControl;
+    guint64 LastBranchToRip;
+    guint64 LastBranchFromRip;
+    guint64 LastExceptionToRip;
+    guint64 LastExceptionFromRip;
+  } CONTEXT_X86_64,*PCONTEXT_X86_64; 
+
 typedef struct _MiniDump MiniDump;
 
-MiniDump *mini_dump_new(gchar *filename);
+#pragma pack()
+
+MiniDump *mini_dump_new(gchar *filename,gchar *binary_directory);
 gboolean mini_dump_open(MiniDump *self);
 void mini_dump_close(MiniDump *self);
 void mini_dump_free(MiniDump *self);
+void mini_dump_print_stackwalk(MiniDump *self);
 #endif

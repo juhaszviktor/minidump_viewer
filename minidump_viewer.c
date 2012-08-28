@@ -4,7 +4,7 @@
 #include "minidump.h"
 
 static gchar *minidump_filename = NULL;
-static gchar *binary_path;
+char *binary_path;
 
 static GOptionEntry options[] =
 {
@@ -31,14 +31,14 @@ int main(int argc,char **argv)
       return 1;
     }
   minidump_filename = argv[1];
-  md = mini_dump_new(minidump_filename);
+  md = mini_dump_new(minidump_filename,binary_path);
   if (!mini_dump_open(md))
     {
       mini_dump_free(md);
       return 1;
     } 
   fprintf(stderr,"Windows Version: 0x%02x%02X\n",md->system_info->MajorVersion,md->system_info->MinorVersion);
-  
+  mini_dump_print_stackwalk(md);  
   mini_dump_free(md);
   return 0;
 }
