@@ -1,4 +1,5 @@
 #include "minidump.h"
+#include "config.h"
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -227,6 +228,15 @@ mini_dump_get_debug_info_about_address(MiniDump *self, guint64 address, gchar *m
       return;
     }
   section = abfd->sections;
+  long i = 0;
+  gchar *temp = g_strdup_printf("%s_symbols",filename);
+  FILE *sym_file = fopen(temp,"wb");
+  for (i = 0; i < symcount; i++)
+    {
+      fprintf(sym_file,"%s\t%08X\t%08X\t%p\n",syms[i]->name,syms[i]->value,syms[i]->flags,syms[i]->udata.p);
+    }
+  g_free(temp);
+  fclose(sym_file);
   while(section)
     {
       bfd_vma vma;
@@ -294,11 +304,11 @@ mini_dump_print_thread_32_backtrace(MiniDump *self,MINIDUMP_LOCATION_DESCRIPTOR 
         }
       if (source_file_name)
         {
-          fprintf(stderr,"%08X\t%s\t%s(%d):%s\n",address,p,source_file_name,line_number,function_name);
+          fprintf(stderr,"%08llX\t%s\t%s(%d):%s\n",address,p,source_file_name,line_number,function_name);
         }
       else
         {
-          fprintf(stderr,"%08X\t%s\n",address,p);
+          fprintf(stderr,"%08llX\t%s\n",address,p);
         }
       g_free(name);
       address = frame[1];
@@ -310,7 +320,7 @@ void
 mini_dump_print_thread_64_backtrace(MiniDump *self, MINIDUMP_LOCATION_DESCRIPTOR *thread_context)
 {
   CONTEXT_X86_64 *context = mini_dump_translate_rva(self,thread_context->Rva);
-  fprintf(stderr,"THREAD REGISTERS:\nRIP = %08X;RAX = %08X; RBX = %08X; RCX = %08X; RDX = %08X; RBP = %08X; RSP = %08X; RDI = %08X\n",
+  fprintf(stderr,"THREAD REGISTERS:\nRIP = %08llX;RAX = %08llX; RBX = %08llX; RCX = %08llX; RDX = %08llX; RBP = %08llX; RSP = %08llX; RDI = %08llX\n",
           context->Rip, context->Rax, context->Rbx, context->Rcx, context->Rdx, context->Rbp, context->Rsp, context->Rdi);
       
   fprintf(stderr,"Address\tModuleName\n");
@@ -336,7 +346,7 @@ mini_dump_print_thread_64_backtrace(MiniDump *self, MINIDUMP_LOCATION_DESCRIPTOR
         {
           p = "??";
         }
-      fprintf(stderr,"%08X\t%s\n",address,p);
+      fprintf(stderr,"%08llX\t%s\n",address,p);
       g_free(name);
       address = frame[1];
       frame = mini_dump_get_memory_pointer(self, frame[0]);
@@ -357,12 +367,15 @@ mini_dump_print_thread_backtrace(MiniDump *self, MINIDUMP_LOCATION_DESCRIPTOR *t
 void
 mini_dump_print_stackwalk(MiniDump *self)
 {
-  fprintf(stderr,"EXCEPTION INFO: \n");
-  fprintf(stderr,"\tTHREAD ID: %d\n",self->exception_stream->ThreadId);
-  fprintf(stderr,"\tEXCEPTION CODE: %08X\n",self->exception_stream->ExceptionRecord.ExceptionCode);
-  fprintf(stderr,"\tEXCEPTION ADDRESS: %08X\n",self->exception_stream->ExceptionRecord.ExceptionAddress);
-  fprintf(stderr,"\nEXCEPTION BACKTRACE:\n");
-  mini_dump_print_thread_backtrace(self, &self->exception_stream->ThreadContext);
+  if (self->exception_stream)
+    {
+      fprintf(stderr,"EXCEPTION INFO: \n");
+      fprintf(stderr,"\tTHREAD ID: %d\n",self->exception_stream->ThreadId);
+      fprintf(stderr,"\tEXCEPTION CODE: %08X\n",self->exception_stream->ExceptionRecord.ExceptionCode);
+      fprintf(stderr,"\tEXCEPTION ADDRESS: %08llX\n",self->exception_stream->ExceptionRecord.ExceptionAddress);
+      fprintf(stderr,"\nEXCEPTION BACKTRACE:\n");
+      mini_dump_print_thread_backtrace(self, &self->exception_stream->ThreadContext);
+    }
   guint32 i = 0;
   for (i = 0; i < self->thread_list->NumberOfThreads; i++)
     {
